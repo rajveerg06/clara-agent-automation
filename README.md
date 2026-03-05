@@ -1,204 +1,166 @@
-Clara Agent Automation Pipeline
-Overview
+# Clara Agent Automation Pipeline
 
-This project implements an automation pipeline that converts customer call transcripts into AI voice agent configurations.
+An automation workflow that converts customer call transcripts into versioned AI voice agent configurations.
 
-The system processes demo call transcripts to generate an initial agent configuration (v1) and later processes onboarding transcripts to update the agent configuration (v2) while tracking all changes.
+## Overview
 
-This simulates the internal workflow used to configure Clara AI voice agents for service-based businesses such as fire protection companies, sprinkler contractors, and electrical service providers.
+This project simulates Clara's internal setup process for service businesses (for example, fire protection, sprinkler, and electrical providers).
 
-The pipeline ensures that configuration changes are versioned, traceable, and reproducible.
+The pipeline:
 
-Architecture
+1. Processes **demo call transcripts** to generate an initial agent configuration (**v1**).
+2. Processes **onboarding transcripts** to apply confirmed updates and generate **v2**.
+3. Produces a **changelog** so every configuration update is traceable.
 
+The result is a repeatable, transparent, and zero-cost configuration workflow.
+
+## Architecture
+
+### v1 Flow (Demo)
+
+```text
 Demo Call Transcript
-↓
-Extract Business Rules
-↓
-Generate Account Memo JSON
-↓
-Generate Agent Specification
-↓
-Store Agent Configuration (v1)
+  -> Extract Business Rules
+  -> Generate account_memo.json
+  -> Generate agent_spec.json
+  -> Store Configuration (v1)
+```
 
+### v2 Flow (Onboarding)
+
+```text
 Onboarding Transcript
-↓
-Extract Updates
-↓
-Apply Updates to Account Memo
-↓
-Generate Updated Agent Specification
-↓
-Store Updated Configuration (v2)
-↓
-Generate Change Log
+  -> Extract Updates
+  -> Update account_memo.json
+  -> Generate updated agent_spec.json
+  -> Store Configuration (v2)
+  -> Generate changelog
+```
 
-Features
+## Features
 
-Automated extraction of service business rules from transcripts
+- Automated extraction of service business rules from transcripts
+- Structured `account_memo.json` generation
+- AI voice agent draft spec generation (`agent_spec.json`)
+- Versioned outputs (`v1` -> `v2`)
+- Explicit change tracking through account-level changelog files
+- Reproducible local pipeline
+- No paid APIs required
 
-Structured Account Memo JSON generation
+## Project Structure
 
-AI voice agent draft specification generation
+```text
+clara-agent-automation/
+  dataset/
+    demo_calls/
+      demo_call_1.txt
+    onboarding_calls/
+      onboarding_1.txt
+  outputs/
+    accounts/
+      ACC_xxxxx/
+        v1/
+          account_memo.json
+          agent_spec.json
+        v2/
+          account_memo.json
+          agent_spec.json
+  changelog/
+    ACC_xxxxx_changes.json
+  scripts/
+    extract_demo_data.py
+    extract_onboarding_updates.py
+    generate_account_memo.py
+    generate_agent_spec.py
+    generate_changelog.py
+    update_account_version.py
+    run_demo_pipeline.py
+    run_onboarding_pipeline.py
+    version_manager.py
+  workflows/
+  README.md
+```
 
-Version control for agent configurations (v1 → v2)
+## Dataset Expectations
 
-Change tracking using a changelog
+Place transcripts in the following folders:
 
-Reproducible automation pipeline
+- `dataset/demo_calls/`
+- `dataset/onboarding_calls/`
 
-Zero-cost implementation (no paid APIs)
+### Demo Calls
 
-Project Structure
-clara-agent-automation
-│
-├── dataset
-│   ├── demo_calls
-│   │   └── demo_call_1.txt
-│   │
-│   └── onboarding_calls
-│       └── onboarding_1.txt
-│
-├── outputs
-│   └── accounts
-│       └── ACC_xxxxx
-│           ├── v1
-│           │   ├── account_memo.json
-│           │   └── agent_spec.json
-│           │
-│           └── v2
-│               ├── account_memo.json
-│               └── agent_spec.json
-│
-├── changelog
-│   └── ACC_xxxxx_changes.json
-│
-├── scripts
-│   ├── extract_demo_data.py
-│   ├── extract_onboarding_updates.py
-│   ├── generate_account_memo.py
-│   ├── generate_agent_spec.py
-│   ├── generate_changelog.py
-│   ├── update_account_version.py
-│   ├── run_demo_pipeline.py
-│   ├── run_onboarding_pipeline.py
-│   └── version_manager.py
-│
-├── workflows
-│
-└── README.md
+Demo transcripts capture initial discovery conversations and are used to produce the first draft configuration.
 
-Dataset
-The pipeline expects transcripts to be placed in the following directories:
-dataset/demo_calls/
-dataset/onboarding_calls/
+### Onboarding Calls
 
-Demo Calls
+Onboarding transcripts capture confirmed operational details (for example: business hours, emergency routing, and service policies) and are used to update `v1` into `v2`.
 
-Demo call transcripts contain initial conversations with potential clients.
-These transcripts are used to extract preliminary configuration details.
+## Running The Pipeline
 
-Onboarding Calls
+Run commands from the repository root.
 
-Onboarding transcripts contain confirmed operational details such as:
+### 1. Generate Initial Agent (v1)
 
-business hours
-
-emergency routing rules
-
-service handling policies
-
-These transcripts update the agent configuration from v1 to v2.
-
-Running the Pipeline
-Step 1 — Generate Initial Agent (v1)
-
-Run the demo pipeline:
-
+```bash
 python scripts/run_demo_pipeline.py
+```
 
-This will:
+This step will:
 
-read demo transcripts
+- read demo transcripts
+- extract business rules
+- generate account memo
+- generate agent spec
+- write output to `outputs/accounts/<account_id>/v1/`
 
-extract business rules
+### 2. Apply Onboarding Updates (v2)
 
-generate account memo
-
-create agent specification
-
-store v1 configuration
-
-Outputs are stored in:
-
-outputs/accounts/<account_id>/v1/
-Step 2 — Apply Onboarding Updates (v2)
-
-Run the onboarding pipeline:
-
+```bash
 python scripts/run_onboarding_pipeline.py
+```
 
-This will:
+This step will:
 
-read onboarding transcripts
+- read onboarding transcripts
+- extract updates
+- update account memo
+- regenerate agent spec
+- write output to `outputs/accounts/<account_id>/v2/`
+- generate changelog in `changelog/`
 
-extract updates
+## Output Artifacts
 
-modify the account memo
+For each account, the pipeline generates:
 
-generate updated agent specification
+### 1. Account Memo (`account_memo.json`)
 
-create v2 configuration
+Structured operational data extracted from transcripts.
 
-generate changelog
+Typical fields include:
 
-Outputs are stored in:
+- `account_id`
+- `company_name`
+- `business_hours`
+- `services_supported`
+- `emergency_definition`
+- `routing_rules`
+- `questions_or_unknowns`
 
-outputs/accounts/<account_id>/v2/
-Output Artifacts
+### 2. Agent Specification (`agent_spec.json`)
 
-For each account the system generates:
+Draft voice agent configuration, including:
 
-Account Memo JSON
+- agent name
+- voice style
+- system prompt
+- version metadata
 
-Contains structured operational information extracted from transcripts.
+### 3. Changelog (`ACC_<id>_changes.json`)
 
-Example fields:
+Diff-style record of changes between `v1` and `v2`.
 
-account_id
-
-company_name
-
-business_hours
-
-services_supported
-
-emergency_definition
-
-routing rules
-
-questions_or_unknowns
-
-Agent Draft Specification
-
-Represents the configuration required to create a Retell voice agent.
-
-Includes:
-
-agent name
-
-voice style
-
-system prompt
-
-version information
-
-Changelog
-
-Tracks differences between v1 and v2 configurations.
-
-Example:
-
+```json
 {
   "business_hours": {
     "old": null,
@@ -209,55 +171,40 @@ Example:
     }
   }
 }
-Design Decisions
-Modular Pipeline
+```
 
-Each stage of the workflow is implemented as a separate script to ensure modularity and maintainability.
+## Design Decisions
 
-Versioned Configuration
+### Modular Scripts
 
-Agent configurations are stored in versioned directories:
+Each workflow stage is a separate script, which keeps the pipeline easy to maintain and test.
 
-v1 → demo call configuration  
-v2 → onboarding update configuration
-Change Tracking
+### Versioned Output Model
 
-Changes between versions are captured in a changelog to maintain transparency in configuration updates.
+Configuration snapshots are stored by version:
 
-Zero-Cost Constraint
+- `v1`: generated from demo calls
+- `v2`: updated with onboarding details
 
-The system uses:
+### Transparent Change Tracking
 
-Python
+Differences between versions are stored in changelog files for easy audit and review.
 
-Local file storage
+### Zero-Cost Constraint
 
-Rule-based extraction
+The implementation uses local Python scripts, rule-based extraction, and file storage only (no paid services).
 
-This satisfies the assignment requirement of no paid APIs or services.
+## Future Improvements
 
-Future Improvements
+- Integrate with `n8n` for workflow orchestration
+- Add local Whisper-based transcription
+- Build a dashboard to monitor generated agents
+- Integrate with Retell API for direct agent creation
+- Improve extraction accuracy with stronger NLP logic
 
-Possible enhancements for production deployment include:
+## Demo Walkthrough
 
-Integration with n8n workflow automation
-
-Local Whisper-based speech-to-text transcription
-
-Web dashboard for monitoring generated agents
-
-Integration with Retell API for automatic agent creation
-
-Improved NLP-based extraction for higher accuracy
-
-Demo
-
-The system can be demonstrated by:
-
-Running the demo pipeline
-
-Inspecting generated v1 outputs
-
-Running the onboarding pipeline
-
-Inspecting v2 outputs and changelog
+1. Run `python scripts/run_demo_pipeline.py`.
+2. Inspect generated `v1` files in `outputs/accounts/<account_id>/v1/`.
+3. Run `python scripts/run_onboarding_pipeline.py`.
+4. Inspect updated `v2` files and changelog output.
